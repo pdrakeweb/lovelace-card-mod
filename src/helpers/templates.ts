@@ -77,7 +77,19 @@ export async function bind_template(
   variables: object
 ): Promise<void> {
   const hs = await hass();
-  const panelState = await getPanelState();
+  // getPanelState() can both hang (panel resolver retries forever) and
+  // REJECT (the panel resolver's updateComplete rejects when HA's
+  // _updateRoutes crashes). Panel state is only template metadata, so
+  // fall back to a minimal state instead of killing template binding.
+  const panelState = await Promise.race([
+    getPanelState().catch(() => ({ hash: "", panel: {} })),
+    new Promise((resolve) =>
+      window.setTimeout(
+        () => resolve({ hash: location.hash.substring(1) || "", panel: {} }),
+        5000
+      )
+    ),
+  ]);
   const connection = hs.connection;
 
   variables = {
