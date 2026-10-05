@@ -11,15 +11,23 @@ async function _getPanel(document) {
   return _panel;
 
   async function _getPanel(document) {
+    // selectTree rethrows non-timeout errors, e.g. when the panel
+    // resolver's updateComplete rejects because HA's _updateRoutes crashed.
+    // Treat that as "not found" so the outer retry loop keeps trying (and
+    // getPanelState() doesn't stay permanently rejected).
     let panel = await selectTree(
       document,
       "home-assistant $ home-assistant-main $ partial-panel-resolver>*"
-    );
+    ).catch(() => null);
     if (!panel) {
-      panel = await selectTree(document, "hc-main $ hc-lovelace");
+      panel = await selectTree(document, "hc-main $ hc-lovelace").catch(
+        () => null
+      );
     }
     if (!panel) {
-      panel = await selectTree(document, "hc-main $ hc-lovelace");
+      panel = await selectTree(document, "hc-main $ hc-lovelace").catch(
+        () => null
+      );
     }
     return panel;
   }
